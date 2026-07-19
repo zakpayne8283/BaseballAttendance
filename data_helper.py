@@ -43,14 +43,12 @@ class DataHelper():
     start_year = 2000
     end_year   = 2025
 
-    suppress_print_output = False
-
     output_file = 'raw_output.csv'
 
     base_schedule_url = 'https://www.baseball-reference.com/teams/[[TEAM]]/[[YEAR]]-schedule-scores.shtml'
 
     def __init__(self, **kwargs):
-        kw_options = ['start_year', 'end_year', 'suppress_print_output']
+        kw_options = ['start_year', 'end_year']
 
         for opt in kw_options:
             if opt in kwargs.keys():
@@ -63,6 +61,11 @@ class DataHelper():
 
     
     def collect_data(self):
+        # delete the old file if it's there so it doesn't just keep appending the data
+        if os.path.exists(self.output_file):
+            print(f'Found previous {self.output_file}, removing...')
+            os.remove(self.output_file)
+
         for team, codes in self.teams.items():
             print(f'Collecting Data for {team}...')
 
@@ -72,15 +75,20 @@ class DataHelper():
 
                     target_url = self.base_schedule_url.replace('[[TEAM]]', team_code).replace('[[YEAR]]', str(year))
 
-                    # Download the data
+                    # download the data
                     try:
-                        pd.read_html(target_url)[0].to_csv(self.output_file, mode='a', header=not os.path.exists(self.output_file), index=False)
+                        # read the page
+                        df = pd.read_html(target_url)[0]
+                        # add a year field; the raw data just has a month and day
+                        df['year'] = year
+                        # output to CSV
+                        df.to_csv(self.output_file, mode='a', header=not os.path.exists(self.output_file), index=False)
                         print(' Done!')
                     except HTTPError as e:
                         print(f'Failed to fetch {year} for {team_code}!')
 
                     # baseball-reference rate limits you.
-                    # Too many requests (about 20/minute) locks you out for 30 minutes
+                    # too many requests (about 20/minute) locks you out for 30 minutes
                     time.sleep(5)
 
             print(f'Finished {team}')
