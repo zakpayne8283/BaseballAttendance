@@ -94,3 +94,7 @@ class DataHelper():
             print(f'Finished {team}')
 
         print(f'Finished Collecting All Data!')
+
+
+if __name__ == '__main__':
+    DataHelper().collect_data()
